@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:todolist_011/view/floatwidgets/createbox.dart';
 
 class MyFloatingButton extends StatelessWidget {
-  final void Function(String taskName) onCreate; // Callback to handle task creation
-  final bool isSubTask; // Flag to determine if it's a sub-task
+  final void Function(String taskName) onCreate;
+  final bool isSubTask;
 
   const MyFloatingButton({
     Key? key,
@@ -18,7 +18,7 @@ class MyFloatingButton extends StatelessWidget {
       foregroundColor: Colors.black,
       tooltip: 'Add Item',
       onPressed: () {
-        _showCreateNewUserDialog(context); // Show the create dialog
+        _showCreateNewUserDialog(context);
       },
       label: const Text("Add Task"),
       icon: const Icon(Icons.add),
@@ -30,11 +30,10 @@ class MyFloatingButton extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return CreateNewUser(
-          isSubTask: isSubTask, // Pass the flag to CreateNewUser
+          isSubTask: isSubTask,
           onCreate: (taskName) {
-            // Handle task creation callback
             Navigator.of(context).pop(); // Close the dialog
-            onCreate(taskName); // Call the provided onCreate callback
+            onCreate(taskName); // Call the onCreate callback
           },
         );
       },

@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:todolist_011/managetasks.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; 
+import 'package:todolist_011/bloc/todo_bloc.dart'; 
+import 'package:todolist_011/bloc/todo_event.dart';
 import 'package:todolist_011/model/datamodel.dart';
 import 'package:todolist_011/utils/snackbar.dart';
+import 'package:todolist_011/view/floatwidgets/floatingbutton.dart';
 import 'package:todolist_011/view/displaybox/subtaskscard.dart';
-
-import 'package:todolist_011/view/floatwidgets/floatingbutton.dart'; 
 
 class TaskDetailsPage extends StatefulWidget {
   final Task mainTask;
-  final TaskService taskService;
 
   const TaskDetailsPage({
     Key? key,
     required this.mainTask,
-    required this.taskService,
   }) : super(key: key);
 
   @override
@@ -26,15 +25,43 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
   @override
   void initState() {
     super.initState();
-    subTaskChecked =
-        List<bool>.filled(widget.mainTask.subTasks?.length ?? 0, false);
+    subTaskChecked = List<bool>.filled(widget.mainTask.subTasks.length, false);
   }
 
-  void _addSubTask(String taskName) {
+  void _addSubTask(String subTaskName) {
+    context.read<TodoBloc>().add(AddSubTaskEvent(subTaskName, widget.mainTask));
+    Utils.showSnackbar(context, 'Sub-task "$subTaskName" added');
     setState(() {
-      widget.mainTask.subTasks!.add(taskName);
-      subTaskChecked.add(false); // Add a new unchecked state for the sub-task
+      subTaskChecked.add(false);
     });
+  }
+
+  void _deleteSubTask(int index) async {
+    final confirmDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: const Text('Are you sure you want to delete this sub-task?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmDelete == true) {
+      context.read<TodoBloc>().add(DeleteSubTaskEvent(index, widget.mainTask));
+      Utils.showSnackbar(context, 'Sub-task deleted');
+      setState(() {
+        subTaskChecked.removeAt(index);
+      });
+    }
   }
 
   @override
@@ -48,80 +75,36 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.mainTask.description, style: TextStyle(fontSize: 18)),
+            Text(widget.mainTask.description, style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: 20),
-            if (widget.mainTask.subTasks != null &&
-                widget.mainTask.subTasks!.isNotEmpty) ...[
-              Expanded(
-                child: ListView.builder(
-                  itemCount: widget.mainTask.subTasks!.length,
-                  itemBuilder: (context, index) {
-                    return SubTaskCard(
-                      taskName: widget.mainTask.subTasks![index],
-                      taskDescription: "", // Customize as needed
-                      isChecked: subTaskChecked[index],
-                      onCheckboxChanged: (bool? value) {
-                        setState(() {
-                          subTaskChecked[index] = value ?? false;
-                        });
-                      },
-                      onDelete: () async {
-                        // Confirm deletion of the sub-task
-                        final confirmDelete = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Confirm Deletion'),
-                            content: const Text(
-                                'Are you sure you want to delete this sub-task?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false), // Cancel
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(true), // Delete
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
+            Expanded(
+              child: widget.mainTask.subTasks.isNotEmpty
+                  ? ListView.builder(
+                      itemCount: widget.mainTask.subTasks.length,
+                      itemBuilder: (context, index) {
+                        return SubTaskCard(
+                          taskName: widget.mainTask.subTasks[index],
+                          taskDescription: "", // Customize as needed
+                          isChecked: subTaskChecked[index],
+                          onCheckboxChanged: (bool? value) {
+                            setState(() {
+                              subTaskChecked[index] = value ?? false;
+                            });
+                          },
+                          onDelete: () => _deleteSubTask(index),
                         );
-
-                        // Proceed to delete if confirmed
-                        if (confirmDelete == true) {
-                          await widget.taskService
-                              .deleteSubTask(widget.mainTask.title, index);
-
-                          Utils.showSnackbar(context, 'Sub-task deleted');
-                        
-                          setState(() {
-                            widget.mainTask.subTasks!.removeAt(index);
-                            subTaskChecked.removeAt(index);
-                          });
-                        }
                       },
-                    );
-                  },
-                ),
-              ),
-            ] else ...[
-              const Text(
-                  'No sub-tasks available'), // Message when no sub-tasks exist
-            ],
+                    )
+                  : const Center(child: Text('No sub-tasks available')),
+            ),
           ],
         ),
       ),
       floatingActionButton: MyFloatingButton(
         onCreate: (taskName) {
           _addSubTask(taskName);
-           Utils.showSnackbar(context, 'Sub-task "$taskName" added');
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Sub-task "$taskName" added')),
-          );
         },
-        isSubTask: true, 
+        isSubTask: true, // Denotes creation of sub-tasks
       ),
     );
   }

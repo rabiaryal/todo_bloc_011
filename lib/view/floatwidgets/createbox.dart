@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:todolist_011/managetasks.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todolist_011/bloc/todo_bloc.dart'; // Import your BLoC
+import 'package:todolist_011/bloc/todo_event.dart'; // Import your TodoEvent
 import 'package:todolist_011/model/datamodel.dart';
-import 'subtaskpage.dart'; // Import SubTaskPage
+import 'subtaskpage.dart';
 
 class CreateNewUser extends StatefulWidget {
-  final bool isSubTask; // Indicates if this is for a sub-task
-  final void Function(String) onCreate; // Callback for when a new task/sub-task is created
+  final bool isSubTask;
+  final void Function(String) onCreate;
 
   const CreateNewUser({
     Key? key,
     required this.isSubTask,
-    required this.onCreate, // Accept the onCreate callback
+    required this.onCreate,
   }) : super(key: key);
 
   @override
@@ -31,19 +33,46 @@ class _CreateNewUserState extends State<CreateNewUser> {
     super.dispose();
   }
 
+  void _createTask() {
+    final taskTitle = _taskNameController.text;
+    final taskDescription = _taskDescriptionController.text;
+
+    // Dispatch AddEvent for task
+    final newTask = Task(
+      title: taskTitle,
+      description: taskDescription,
+    );
+
+    context.read<TodoBloc>().add(AddEvent(
+      newTask, // Pass the new Task object
+      title: taskTitle,
+      description: taskDescription,
+    ));
+
+    // Handle sub-tasks creation
+    if (addSubTasks) {
+      for (String subTask in subTasks) {
+        context.read<TodoBloc>().add(AddSubTaskEvent(
+          subTask, // Pass the sub-task string
+          newTask, // Pass the parent Task object
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.isSubTask ? 'Create New Sub-Task' : 'Create New Task'), // Change title based on context
+      title: Text(widget.isSubTask ? 'Create New Sub-Task' : 'Create New Task'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: _taskNameController,
-              decoration: InputDecoration(hintText: 'Enter ${widget.isSubTask ? 'sub-task' : 'task'} name'), // Adjust hint text
+              decoration: InputDecoration(hintText: 'Enter ${widget.isSubTask ? 'sub-task' : 'task'} name'),
             ),
-            if (!widget.isSubTask) ...[ // Show description field only for tasks
+            if (!widget.isSubTask) ...[
               const SizedBox(height: 10),
               TextField(
                 controller: _taskDescriptionController,
@@ -51,7 +80,7 @@ class _CreateNewUserState extends State<CreateNewUser> {
               ),
             ],
             const SizedBox(height: 20),
-            if (!widget.isSubTask) ...[ // Checkbox only for tasks
+            if (!widget.isSubTask) ...[
               Row(
                 children: [
                   Checkbox(
@@ -60,7 +89,7 @@ class _CreateNewUserState extends State<CreateNewUser> {
                       setState(() {
                         addSubTasks = value ?? false;
                         if (addSubTasks) {
-                          _navigateToSubTaskPage(context); // Navigate to sub-task input page
+                          _navigateToSubTaskPage(context);
                         }
                       });
                     },
@@ -72,9 +101,8 @@ class _CreateNewUserState extends State<CreateNewUser> {
             if (subTasks.isNotEmpty) ...[
               const SizedBox(height: 10),
               Column(
-                children: subTasks
-                    .map((subTask) => Text(subTask, style: const TextStyle(fontSize: 16)))
-                    .toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: subTasks.map((subTask) => Text(subTask, style: const TextStyle(fontSize: 16))).toList(),
               ),
             ],
           ],
@@ -82,31 +110,17 @@ class _CreateNewUserState extends State<CreateNewUser> {
       ),
       actions: [
         TextButton(
-          onPressed: () {
-            Navigator.of(context).pop(); // Close the dialog
-          },
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         TextButton(
-          onPressed: () async {
+          onPressed: () {
             if (widget.isSubTask) {
-              // If creating a sub-task, just pass back the task name
-              Navigator.of(context).pop(_taskNameController.text);
-              widget.onCreate(_taskNameController.text); // Call the onCreate callback with the task name
+              widget.onCreate(_taskNameController.text); // Sub-task callback
             } else {
-              // Create the Task object with sub-tasks
-              final task = Task(
-                title: _taskNameController.text,
-                description: _taskDescriptionController.text,
-                subTasks: subTasks,
-              );
-
-              // Save the Task to Hive using TaskService
-              await TaskService().addTask(task);
-
-              // Close the dialog after saving
-              Navigator.of(context).pop();
+              _createTask(); // Call method to create task
             }
+            Navigator.of(context).pop();
           },
           child: const Text('Create'),
         ),
@@ -115,17 +129,14 @@ class _CreateNewUserState extends State<CreateNewUser> {
   }
 
   void _navigateToSubTaskPage(BuildContext context) async {
-    // Navigate to SubTaskPage and wait for the result (list of sub-tasks)
-    final result = await Navigator.push(
+    final result = await Navigator.push<List<String>>(
       context,
-      MaterialPageRoute(
-        builder: (context) => const SubTaskPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const SubTaskPage()),
     );
 
-    if (result != null && result is List<String>) {
+    if (result != null) {
       setState(() {
-        subTasks = result; // Store the sub-tasks returned from SubTaskPage
+        subTasks = result;
       });
     }
   }

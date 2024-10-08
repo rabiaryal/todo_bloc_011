@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todolist_011/bloc/todo_bloc.dart'; // Import your BLoC
 
 class SubTaskPage extends StatefulWidget {
   const SubTaskPage({super.key});
@@ -13,7 +15,7 @@ class _SubTaskPageState extends State<SubTaskPage> {
   @override
   void initState() {
     super.initState();
-    _subTaskControllers.add(TextEditingController()); // Add at least one input field initially
+    _subTaskControllers.add(TextEditingController()); // Add an initial field
   }
 
   @override
@@ -42,59 +44,51 @@ class _SubTaskPageState extends State<SubTaskPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(10.0),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18.0,vertical: 8),
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _subTaskControllers.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _subTaskControllers[index],
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(10))
-                                ),
-                                hintText: 'Enter sub-task',
-                              ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: _subTaskControllers.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _subTaskControllers[index],
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'Sub-task',
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () {
-                              _removeSubTaskField(index);
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.remove),
+                          onPressed: () => _removeSubTaskField(index),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              TextButton(
-                onPressed: _addSubTaskField,
-                child: const Text('Add another sub-task'),
-              )
-            ],
-          ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final subTasks = _subTaskControllers
+                    .map((controller) => controller.text)
+                    .where((text) => text.isNotEmpty)
+                    .toList();
+                Navigator.of(context).pop(subTasks);
+              },
+              child: const Text('Save Sub-tasks'),
+            ),
+            TextButton(
+              onPressed: _addSubTaskField,
+              child: const Text('Add Another Sub-task'),
+            ),
+          ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Collect the sub-tasks and return them to the previous screen
-          List<String> subTasks = _subTaskControllers
-              .map((controller) => controller.text)
-              .where((text) => text.isNotEmpty)
-              .toList();
-          Navigator.pop(context, subTasks); // Pass the list of sub-tasks back
-        },
-        child: const Icon(Icons.check),
       ),
     );
   }

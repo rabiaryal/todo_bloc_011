@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class SelectBox extends StatefulWidget {
   final bool isChecked;
-  final ValueChanged<bool?> onChanged; // Callback for checkbox changes
+  final ValueChanged<bool?> onChanged; 
 
   const SelectBox({
     super.key,

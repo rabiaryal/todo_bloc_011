@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:todolist_011/managetasks.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todolist_011/bloc/todo_bloc.dart';
+import 'package:todolist_011/bloc/todo_event.dart';
 import 'package:todolist_011/model/datamodel.dart';
 import 'package:todolist_011/view/displaybox/displaybox.dart';
-import 'package:todolist_011/view/floatwidgets/createbox.dart';
 import 'package:todolist_011/view/floatwidgets/floatingbutton.dart';
 
 class Homepage extends StatefulWidget {
@@ -14,20 +14,35 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  final TaskService taskService = TaskService();
-
-  // Method to handle task creation
   void _createTask(String taskName) {
-    
-    final newTask = Task(title: taskName, description: "", subTasks: []); // Create a new task object
-    taskService.addTask(newTask);
+    final taskTitle = taskName;
+    final taskDescription = ''; // Assuming no description for now
+
+    // Create a new Task object
+    final newTask = Task(
+      title: taskTitle,
+      description: taskDescription,
+      subTasks: [], // Initialize with an empty list of sub-tasks
+    );
+
+    // Dispatch event to BLoC for adding a new task
+    context.read<TodoBloc>().add(AddEvent(
+      newTask,
+      title: taskTitle,
+      description: taskDescription,
+    ));
+
+    // Feedback on task addition
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Task "$taskName" added')),
+      SnackBar(content: Text('Task "$taskTitle" added')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get the current state of the BLoC
+    final state = context.watch<TodoBloc>().state;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow.shade500,
@@ -36,33 +51,26 @@ class _HomepageState extends State<Homepage> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 18),
-        child: ValueListenableBuilder(
-          valueListenable: Hive.box<Task>('tasks').listenable(),
-          builder: (context, Box<Task> box, _) {
-            if (box.isEmpty) {
-              return const Center(child: Text('No tasks available'));
-            } else {
-              final tasks = box.values.toList();
-              return ListView.builder(
-                itemCount: tasks.length,
+        child: state.tasks.isEmpty
+            ? const Center(child: Text('No tasks available'))
+            : ListView.builder(
+                itemCount: state.tasks.length,
                 itemBuilder: (context, index) {
                   return Displaybox(
-                    task: tasks[index],
+                    task: state.tasks[index],
                     index: index,
-                    taskService: taskService, // Pass the TaskService instance
+                    // Remove taskService if it's not defined in your Displaybox widget
+                    // If needed, define how to get the task service or simply omit this parameter
                   );
                 },
-              );
-            }
-          },
-        ),
+              ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: MyFloatingButton(
         onCreate: (taskName) {
-          _createTask(taskName); // Call method to create a new task
+          _createTask(taskName);
         },
-        isSubTask: false, // Set to false since we're creating a main task
+        isSubTask: false,
       ),
     );
   }

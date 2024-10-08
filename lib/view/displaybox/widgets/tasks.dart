@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 class DisplayTasks extends StatelessWidget {
   final String taskName;
-  final String? taskDescription; // Make taskDescription optional
+  final String? taskDescription; 
 
   const DisplayTasks({
     super.key,
     required this.taskName,
-    this.taskDescription, // Change to optional
+    this.taskDescription, 
   });
 
   @override
@@ -16,7 +16,7 @@ class DisplayTasks extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(taskName, style: const TextStyle(fontWeight: FontWeight.w600)),
-        // Conditionally show the description only if it is not null
+        
         if (taskDescription != null && taskDescription!.isNotEmpty)
           Text(taskDescription!,
               style: const TextStyle(
